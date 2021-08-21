@@ -1,6 +1,10 @@
 Import-Module $PSScriptRoot\bin\Debug\net5.0\publish\PSCmdlet.dll -Force
 
 function Get-NBContent {
+    <#
+        .Example
+        Get-NBContent testNB.ipynb
+    #>
     param(
         [Parameter(ValueFromPipelineByPropertyName)]
         $FullName
@@ -10,48 +14,18 @@ function Get-NBContent {
         $nb = Invoke-TheNotebook $FullName
 
         foreach ($cell in $nb.Cells) {
-            $fn = "$($cell.Language)Display"
-            if (! (Get-Command $fn -ErrorAction SilentlyContinue) ) {
-                Write-Warning "$fn not found, cannot show data for text"
-                continue
+            switch -Regex ($cell.Language) {
+                'pwsh' { 
+                    $Result = $cell.Outputs.Text
+                }
+                'csharp|fsharp' {
+                    $Result = $cell.Outputs.Data.Values
+                }
             }
 
-            &$fn $cell $FullName
+            DoDisplay -Cell $cell -FullName $FullName -Result $result
         }
     }
-}
-
-function pwshDisplay {
-    param(
-        $Cell,
-        $FullName
-    )
-
-    $Result = $Cell.Outputs.Text
-    
-    DoDisplay -Cell $Cell -Result $Result -FullName $FullName
-}
-
-function csharpDisplay {
-    param(
-        $Cell,
-        $FullName
-    )
-
-    $Result = $Cell.Outputs.Data.Values
-    
-    DoDisplay -Cell $Cell -Result $Result -FullName $FullName
-}
-
-function fsharpDisplay {
-    param(
-        $Cell,
-        $FullName
-    )
-
-    $Result = $Cell.Outputs.Data.Values
-
-    DoDisplay -Cell $Cell -Result $Result -FullName $FullName
 }
 
 function DoDisplay {
@@ -79,5 +53,3 @@ function Invoke-NBCode {
 
     Invoke-RunCode $Code $TargetKernelName
 }
-
-Get-NBContent "D:\mygit\DotNetInteractivePSCmdlet\testNB.ipynb"
