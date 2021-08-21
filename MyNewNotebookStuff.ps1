@@ -29,7 +29,7 @@ function pwshDisplay {
 
     $Result = $Cell.Outputs.Text
     
-    DoDisplay $Cell $Result $FullName
+    DoDisplay -Cell $Cell -Result $Result -FullName $FullName
 }
 
 function csharpDisplay {
@@ -40,13 +40,25 @@ function csharpDisplay {
 
     $Result = $Cell.Outputs.Data.Values
     
-    DoDisplay $Cell $Result $FullName
+    DoDisplay -Cell $Cell -Result $Result -FullName $FullName
+}
+
+function fsharpDisplay {
+    param(
+        $Cell,
+        $FullName
+    )
+
+    $Result = $Cell.Outputs.Data.Values
+
+    DoDisplay -Cell $Cell -Result $Result -FullName $FullName
 }
 
 function DoDisplay {
     param(
         $Cell,
         $Result,
+        $MimeType = 'text/html',
         $FullName
     )
     
@@ -54,6 +66,7 @@ function DoDisplay {
         Language = $Cell.Language
         Contents = $Cell.Contents
         Result   = $Result
+        Mimetype = $MimeType
         FullName = $FullName
     }
 }
