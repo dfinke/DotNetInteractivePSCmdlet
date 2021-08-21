@@ -1,4 +1,7 @@
-Import-Module D:\temp\scratch\PSCmdlet\bin\Debug\net5.0\publish\PSCmdlet.dll -Force
+#Import-Module D:\temp\scratch\PSCmdlet\bin\Debug\net5.0\publish\PSCmdlet.dll -Force
+
+
+Import-Module $PSScriptRoot\bin\Debug\net5.0\publish\PSCmdlet.dll -Force
 
 function Get-NBContent {
     param(
@@ -7,10 +10,15 @@ function Get-NBContent {
     )
 
     Process {
-        [PSCustomObject]@{
-            Content  = (Invoke-TheNotebook $FullName).Cells
-            # Content  = Invoke-TheNotebook $FullName
-            FullName = $FullName
+        $nb = Invoke-TheNotebook $FullName
+
+        foreach ($cell in $nb.Cells) {
+            [PSCustomObject]@{            
+                Language = $cell.Language
+                Contents = $cell.Contents
+                Result   = $cell.outputs.text
+                FullName = $FullName
+            }    
         }
     }
 }
