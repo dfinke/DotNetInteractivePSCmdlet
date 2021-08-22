@@ -2,86 +2,21 @@
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.Events;
+using Microsoft.DotNet.Interactive.Formatting;
+using Microsoft.DotNet.Interactive.FSharp;
 using Microsoft.DotNet.Interactive.PowerShell;
 using System;
-using System.IO;
-using System.Management.Automation;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace DotNetInteractivePSCmdlet
 {
-    [Cmdlet(VerbsLifecycle.Invoke, "RunCode")]
-    public class RunCodeCmdlet : Cmdlet
-    {
-        [Parameter(Position = 0)]
-        public string Code;
-
-        [Parameter(Position = 1)]
-        public string TargetKernelName;
-
-        private readonly CompositeKernel kernel;
-        private readonly Repl repl;
-
-        public RunCodeCmdlet()
-        {
-            repl = new Repl();
-            kernel = repl.CreateKernel();
-        }
-
-        protected override void ProcessRecord()
-        {
-            base.ProcessRecord();
-
-            var targetCmd = new SubmitCode(Code, TargetKernelName);
-            var result = Task.Run(() => repl.RunKernelCommand(targetCmd));
-
-            // var result = Task.Run(async () => await kernel.SendAsync(yyz)).Result;
-            // var result = Task.Run(async () => await kernel.SendAsync(yyz));
-            // var result = await kernel.SubmitCodeAsync("null");
-            // var result = Task.Run(() => kernel.SubmitCodeAsync(Code));
-            // var events = result.KernelEvents.ToSubscribedList();
-
-            // var result = kernel.SendAsync(yyz);
-            // var result = await kernel.SubmitCodeAsync("null");
-
-            // WriteObject(yyz);
-            //var result = Task.Run(() => kernel.SendAsync(yyz));
-
-            WriteObject(result);
-        }
-    }
-
-    [Cmdlet(VerbsLifecycle.Invoke, "TheNotebook")]
-    public class InvokeNotebookCmdlet : Cmdlet
-    {
-        [Parameter(ValueFromPipelineByPropertyName = true, Position = 0)]
-        public string FullName;
-
-        private CompositeKernel kernel;
-
-        public InvokeNotebookCmdlet()
-        {
-            var repl = new Repl();
-            kernel = repl.CreateKernel();
-        }
-
-        protected override void ProcessRecord()
-        {
-            base.ProcessRecord();
-
-            var content = File.ReadAllText(FullName);
-            var rawData = Encoding.UTF8.GetBytes(content);
-            var notebook = kernel.ParseNotebook(FullName, rawData);
-
-            WriteObject(notebook);
-        }
-    }
-
     public class Repl : IDisposable
     {
         private CompositeKernel _kernel;
+        private Kernel _pwsh;
+        private Kernel _fsharp;
 
         public CompositeKernel CreateKernel()
         {
@@ -92,21 +27,29 @@ namespace DotNetInteractivePSCmdlet
                 //.UseQuitCommand()
                 .UseKernelClientConnection(new ConnectNamedPipe());
 
-            _kernel.Add(
-                new PowerShellKernel()
+            _pwsh = new PowerShellKernel()
                     .UseProfiles()
-                    .UseDotNetVariableSharing(),
-                new[] { "powershell" });
+                    .UseDotNetVariableSharing();
+
+            _fsharp = new FSharpKernel()
+                    .UseDefaultFormatting()
+                    .UseNugetDirective()
+                    .UseKernelHelpers()
+                    .UseWho();
+
+            _kernel.Add(_pwsh, new[] { "powershell" });
+
+            Formatter.SetPreferredMimeTypeFor(typeof(object), "text/plain");
+            Formatter.Register<object>(o => o.ToString());
 
             return _kernel;
         }
 
         public async Task RunKernelCommand(KernelCommand command)
         {
+            /*
             StringBuilder stdOut = default;
             StringBuilder stdErr = default;
-
-            Task<KernelCommandResult> result = default;
 
             var events = _kernel.KernelEvents.Replay();
             using var _ = events.Connect();
@@ -114,12 +57,9 @@ namespace DotNetInteractivePSCmdlet
             var t = events.FirstOrDefaultAsync(
                 e => e is DisplayEvent or CommandFailed or CommandSucceeded);
 
-            result = _kernel.SendAsync(command);
-
-            await t;
-
             using var bs = events.Subscribe(@event =>
             {
+                Console.WriteLine(@event.ToString());
                 switch (@event)
                 {
                     // events that tell us whether the submission was valid
@@ -143,6 +83,7 @@ namespace DotNetInteractivePSCmdlet
 
                         stdOut ??= new StringBuilder();
                         stdOut.Append(standardOutputValueProduced.PlainTextValue());
+                        Console.WriteLine(stdOut.ToString());
 
                         break;
 
@@ -188,8 +129,14 @@ namespace DotNetInteractivePSCmdlet
                         break;
                 }
             });
-
-            await result!;
+*/
+            Console.WriteLine( "KERNEL: ");
+            Console.WriteLine( _fsharp.Name );
+            Console.WriteLine( "COMMAND: ");
+            Console.WriteLine(command.ToString());
+            var result = await _fsharp.SendAsync(command);
+            Console.WriteLine( "RESULT: ");
+            Console.WriteLine(result.Display().ToString());
         }
 
         public void Dispose()
@@ -204,8 +151,8 @@ namespace DotNetInteractivePSCmdlet
 
     //     foreach (var errorRecord in errorRecords)
     //     {
-    //         WriteError(errorRecord);    
-    //     }       
+    //         WriteError(errorRecord);
+    //     }
     // }
 
     // private async Task<BlockingCollection<ErrorRecord>> ProcessRecordCore()

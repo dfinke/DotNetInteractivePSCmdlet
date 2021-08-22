@@ -1,29 +1,31 @@
+#!/usr/bin/env pwsh
 Import-Module $PSScriptRoot\bin\Debug\net5.0\publish\PSCmdlet.dll -Force
 
-function Get-NBContent {
+function Get-NotebookCell {
     <#
         .Example
-        Get-NBContent testNB.ipynb
+        Get-NotebookCell testNB.ipynb
     #>
     param(
         [Parameter(ValueFromPipelineByPropertyName)]
-        $FullName
+        [Alias("PSPath")]
+        $Path
     )
 
     Process {
-        $nb = Invoke-TheNotebook $FullName
-
+        $nb = Get-Notebook $Path
         foreach ($cell in $nb.Cells) {
-            switch -Regex ($cell.Language) {
-                'pwsh' { 
-                    $Result = $cell.Outputs.Text
+            $Result = switch ($cell.Outputs) {
+                {$_ -is [Microsoft.DotNet.Interactive.Notebook.NotebookCellOutput]} {
+                    # it's frustrating that pwsh is not object oriented here
+                    $_.Text
                 }
-                'csharp|fsharp' {
-                    $Result = $cell.Outputs.Data.Values
+                {$_ -is [Microsoft.DotNet.Interactive.Notebook.NotebookCellDisplayOutput]}  {
+                    $_.Data.Values
                 }
             }
 
-            DoDisplay -Cell $cell -FullName $FullName -Result $result
+            DoDisplay -Cell $cell -Path $Path -Result $result
         }
     }
 }
@@ -33,15 +35,15 @@ function DoDisplay {
         $Cell,
         $Result,
         $MimeType = 'text/html',
-        $FullName
+        $Path
     )
-    
-    [PSCustomObject]@{            
+
+    [PSCustomObject]@{
         Language = $Cell.Language
         Contents = $Cell.Contents
         Result   = $Result
         Mimetype = $MimeType
-        FullName = $FullName
+        Path = $Path
     }
 }
 
@@ -53,3 +55,6 @@ function Invoke-NBCode {
 
     Invoke-RunCode $Code $TargetKernelName
 }
+
+Get-NotebookCell testNB.ipynb -OutVariable Cells
+#$Cells | Invoke-Kernel
