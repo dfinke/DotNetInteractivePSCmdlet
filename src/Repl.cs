@@ -1,6 +1,7 @@
 ﻿using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Connection;
+using Microsoft.DotNet.Interactive.CSharp;
 using Microsoft.DotNet.Interactive.Events;
 using Microsoft.DotNet.Interactive.Formatting;
 using Microsoft.DotNet.Interactive.FSharp;
@@ -16,29 +17,32 @@ namespace DotNetInteractivePSCmdlet
     {
         private CompositeKernel _kernel;
         private Kernel _pwsh;
+        private Kernel _csharp;
         private Kernel _fsharp;
 
         public CompositeKernel CreateKernel()
         {
-            _kernel = new CompositeKernel()
-                //.UseAboutMagicCommand()
-                .UseDebugDirective()
-                //.UseHelpMagicCommand()
-                //.UseQuitCommand()
-                .UseKernelClientConnection(new ConnectNamedPipe());
-
             _pwsh = new PowerShellKernel()
-                    .UseProfiles()
-                    .UseDotNetVariableSharing();
+                                .UseProfiles()
+                                .UseDotNetVariableSharing();
+
+            _csharp = new CSharpKernel()
+                                .UseNugetDirective()
+                                .UseKernelHelpers()
+                                .UseWho();
 
             _fsharp = new FSharpKernel()
-                    .UseDefaultFormatting()
-                    .UseNugetDirective()
-                    .UseKernelHelpers()
-                    .UseWho();
+                                .UseDefaultFormatting()
+                                .UseNugetDirective()
+                                .UseKernelHelpers()
+                                .UseWho();
 
-            _kernel.Add(_pwsh, new[] { "powershell" });
-
+            _kernel = new CompositeKernel {
+                _pwsh,
+                _csharp,
+                _fsharp,
+            };
+            _kernel.DefaultKernelName = _pwsh.Name;
             Formatter.SetPreferredMimeTypeFor(typeof(object), "text/plain");
             Formatter.Register<object>(o => o.ToString());
 

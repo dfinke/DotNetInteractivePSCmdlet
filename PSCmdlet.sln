@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSCmdlet", "PSCmdlet.csproj", "{5EE7CF01-128D-4645-B31A-E0E2E3E15193}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSCmdlet", "src/PSCmdlet.csproj", "{5EE7CF01-128D-4645-B31A-E0E2E3E15193}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,5 @@
 #!/usr/bin/env pwsh
-Import-Module $PSScriptRoot\bin\Debug\net5.0\publish\PSCmdlet.dll -Force
-
+Import-Module $PSScriptRoot/src/bin/Debug/net5.0/publish/PSCmdlet.dll -Force
 function Get-NotebookCell {
     <#
         .Example
